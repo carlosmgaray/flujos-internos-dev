@@ -15,6 +15,9 @@ export function ReportesPage() {
 
     const {
         seguimientos,
+        sortKey,
+        sortDirection,
+        onSort,
         hasFilters,
         isLoading,
         isFetching,
@@ -56,6 +59,9 @@ export function ReportesPage() {
             {hasFilters ? (
                 <ReportesTable
                     seguimientos={seguimientos}
+                    sortKey={sortKey}
+                    sortDirection={sortDirection}
+                    onSort={onSort}
                     isLoading={isLoading || isFetching}
                     isError={isError}
                     pageNumber={pageNumber}

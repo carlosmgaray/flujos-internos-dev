@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getSeguimientos } from '@/modules/bandeja/operaciones/services';
 import { TIPOS_BUSQUEDA_SEGUIMIENTO } from '@/modules/bandeja/operaciones/interfaces';
 import { IReporteFiltros } from '@/modules/flujos/reportes/interfaces/reporte-filtros.interface';
+import { SortDirection, SortKey, sortSeguimientos } from '@/modules/flujos/reportes/utils/reportes-sort';
 
 export const keysQueryReportes = {
     list: (filtros: IReporteFiltros) => ['reportes', filtros],
@@ -13,6 +14,8 @@ export const keysQueryReportes = {
 export const useReportes = (filtros: IReporteFiltros) => {
     const [pageNumber, setPageNumber] = useState(1);
     const [pageSize, setPageSize] = useState(10);
+    const [sortKey, setSortKey] = useState<SortKey | null>(null);
+    const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
     const hasFilters = !!filtros.productos && !!filtros.subProductos;
 
@@ -40,13 +43,32 @@ export const useReportes = (filtros: IReporteFiltros) => {
     const totalCount = todosSeguimientos.length;
     const totalPages = pageSize > 0 ? Math.ceil(totalCount / pageSize) : 0;
 
+    // Sort the whole result set first, then cut the current page.
+    const seguimientosOrdenados = useMemo(
+        () => sortSeguimientos(todosSeguimientos, sortKey, sortDirection),
+        [todosSeguimientos, sortKey, sortDirection]
+    );
+
     const seguimientos = useMemo(() => {
         const inicio = (pageNumber - 1) * pageSize;
-        return todosSeguimientos.slice(inicio, inicio + pageSize);
-    }, [todosSeguimientos, pageNumber, pageSize]);
+        return seguimientosOrdenados.slice(inicio, inicio + pageSize);
+    }, [seguimientosOrdenados, pageNumber, pageSize]);
+
+    const onSort = (key: SortKey) => {
+        if (sortKey !== key) {
+            setSortKey(key);
+            setSortDirection('asc');
+        } else {
+            setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'));
+        }
+        setPageNumber(1);
+    };
 
     return {
         seguimientos,
+        sortKey,
+        sortDirection,
+        onSort,
         hasFilters,
         isLoading: query.isLoading,
         isError: query.isError,

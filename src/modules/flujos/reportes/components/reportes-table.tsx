@@ -23,9 +23,14 @@ import { MdVisibility } from 'react-icons/md';
 import { ISeguimientoItem } from '@/modules/bandeja/operaciones/interfaces';
 import { DATE_FORMAT, formatDate } from '@/lib/date';
 import { DetalheOperacaoDialog } from '@/modules/flujos/reportes/components/detalhe-operacao-dialog';
+import { formatAreas, formatResponsables, VALOR_VAZIO } from '@/modules/flujos/reportes/utils/reportes-format';
+import { SortDirection, SortKey } from '@/modules/flujos/reportes/utils/reportes-sort';
 
 interface ReportesTableProps {
     seguimientos: ISeguimientoItem[];
+    sortKey: SortKey | null;
+    sortDirection: SortDirection;
+    onSort: (key: SortKey) => void;
     isLoading: boolean;
     isError: boolean;
     pageNumber: number;
@@ -35,8 +40,6 @@ interface ReportesTableProps {
     goToPage: (page: number) => void;
     setPageSize: (size: number) => void;
 }
-
-const VALOR_VAZIO = '-';
 
 // NOTE: Paleta del diseño
 const COLOR_HEADER_BG = '#1e4491';
@@ -52,73 +55,11 @@ interface Column {
     width: string;
 }
 
-type SortKey =
-    | 'operacion'
-    | 'produto'
-    | 'solicitante'
-    | 'areaResponsavel'
-    | 'estado'
-    | 'fechaInicio'
-    | 'prazo'
-    | 'titulo'
-    | 'responsable';
-
-interface Fila {
-    seguimiento: ISeguimientoItem;
-    sortValues: Record<SortKey, string | number>;
-}
-
-/** Normaliza listas: acepta array o string, separa por el patrón indicado,
- *  quita vacíos y duplicados y une con ", ". */
-function formatList(value?: string[] | string | null, separator: RegExp = /[|;]/): string {
-    if (!value) return VALOR_VAZIO;
-
-    const lista = Array.isArray(value) ? value : [value];
-    const items = lista
-        .flatMap(item => String(item ?? '').split(separator))
-        .map(item => item.trim())
-        .filter(Boolean);
-
-    const unicos = Array.from(new Set(items));
-    return unicos.length > 0 ? unicos.join(', ') : VALOR_VAZIO;
-}
-
-const formatAreas = (value?: string[] | string | null) => formatList(value, /[|,;]/);
-const formatResponsables = (value?: string[] | string | null) => formatList(value, /[|;]/);
-
-function buildFila(seguimiento: ISeguimientoItem): Fila {
-    return {
-        seguimiento,
-        sortValues: {
-            operacion: seguimiento.operacion ?? '',
-            produto: `${seguimiento.nombreProducto} / ${seguimiento.nombreSubProducto}`,
-            solicitante: seguimiento.requestedBy ?? seguimiento.propietario ?? '',
-            areaResponsavel: formatAreas(seguimiento.assignedDepartmentNames),
-            estado: seguimiento.estado ?? '',
-            fechaInicio: seguimiento.fechaInicio ?? '',
-            prazo: seguimiento.plazo ?? '',
-            titulo: seguimiento.titulo ?? '',
-            responsable: formatResponsables(seguimiento.responsibleName),
-        },
-    };
-}
-
-function compararFilas(a: Fila, b: Fila, sortKey: SortKey, direction: 'asc' | 'desc'): number {
-    const valorA = a.sortValues[sortKey];
-    const valorB = b.sortValues[sortKey];
-
-    let resultado: number;
-    if (typeof valorA === 'number' && typeof valorB === 'number') {
-        resultado = valorA - valorB;
-    } else {
-        resultado = String(valorA).localeCompare(String(valorB), 'pt-BR');
-    }
-
-    return direction === 'asc' ? resultado : -resultado;
-}
-
 export function ReportesTable({
     seguimientos,
+    sortKey,
+    sortDirection,
+    onSort,
     isLoading,
     isError,
     pageNumber,
@@ -129,8 +70,6 @@ export function ReportesTable({
     setPageSize,
 }: ReportesTableProps) {
     const [detalheDe, setDetalheDe] = useState<ISeguimientoItem | null>(null);
-    const [sortKey, setSortKey] = useState<SortKey | null>(null);
-    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
     const showResponsible = useMemo(
         () => seguimientos.some(item => item.responsibleName && item.responsibleName.trim() !== ''),
@@ -150,22 +89,6 @@ export function ReportesTable({
         ],
         [showResponsible]
     );
-
-    const filas = useMemo(() => {
-        const construidas = seguimientos.map(buildFila);
-        if (!sortKey) return construidas;
-
-        return [...construidas].sort((a, b) => compararFilas(a, b, sortKey, sortDirection));
-    }, [seguimientos, sortKey, sortDirection]);
-
-    const onSort = (key: SortKey) => {
-        if (sortKey !== key) {
-            setSortKey(key);
-            setSortDirection('asc');
-            return;
-        }
-        setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'));
-    };
 
     if (isLoading) {
         return (
@@ -250,7 +173,7 @@ export function ReportesTable({
                     </TableHead>
 
                     <TableBody>
-                        {filas.map(({ seguimiento }, index) => (
+                        {seguimientos.map((seguimiento, index) => (
                             <TableRow
                                 key={`${seguimiento.codigoSeguimiento}-${index}`}
                                 hover
