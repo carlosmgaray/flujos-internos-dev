@@ -14,8 +14,11 @@ export const useReportes = (filtros: IReporteFiltros) => {
     const [pageNumber, setPageNumber] = useState(1);
     const [pageSize, setPageSize] = useState(10);
 
+    const hasFilters = !!filtros.productos && !!filtros.subProductos;
+
     const query = useQuery({
         queryKey: keysQueryReportes.list(filtros),
+        enabled: hasFilters,
         queryFn: () =>
             /* NOTE: `usePagination: false` — igual que hace Bandeja (`fetchSeguimentosCompletos'
              * en `use-seguimientos.ts`). Con `tipoBusqueda: FILTRO`, el route (`filterByDepartment`
@@ -44,6 +47,7 @@ export const useReportes = (filtros: IReporteFiltros) => {
 
     return {
         seguimientos,
+        hasFilters,
         isLoading: query.isLoading,
         isError: query.isError,
         isFetching: query.isFetching,

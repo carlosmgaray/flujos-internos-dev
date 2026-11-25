@@ -152,7 +152,6 @@ export function ReporteFiltrosForm({ open, onToggle, onApply }: ReporteFiltrosFo
             fechaHasta: ultimoDiaMes,
         };
         reset(defaults);
-        onApply(buildFiltros(defaults));
         return true;
     };
 

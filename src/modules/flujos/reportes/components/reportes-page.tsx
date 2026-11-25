@@ -15,7 +15,9 @@ export function ReportesPage() {
 
     const {
         seguimientos,
+        hasFilters,
         isLoading,
+        isFetching,
         isError,
         pageNumber,
         pageSize,
@@ -24,10 +26,15 @@ export function ReportesPage() {
         goToPage,
         setPageSize,
         resetPage,
+        refetch,
     } = useReportes(filtros);
 
     const onApplyFiltros = (novosFiltros: IReporteFiltros) => {
-        setFiltros(novosFiltros);
+        if (JSON.stringify(novosFiltros) === JSON.stringify(filtros)) {
+            refetch();
+        } else {
+            setFiltros(novosFiltros);
+        }
         resetPage();
     };
 
@@ -37,7 +44,7 @@ export function ReportesPage() {
                 <Typography variant="h5" className="font-bold">
                     Centralizador de Relatórios
                 </Typography>
-                <ReportesExportButton filtros={filtros} disabled={isLoading} />
+                <ReportesExportButton filtros={filtros} disabled={!hasFilters || isLoading} />
             </Box>
 
             <ReporteFiltrosForm
@@ -46,17 +53,23 @@ export function ReportesPage() {
                 onApply={onApplyFiltros}
             />
 
-            <ReportesTable
-                seguimientos={seguimientos}
-                isLoading={isLoading}
-                isError={isError}
-                pageNumber={pageNumber}
-                pageSize={pageSize}
-                totalCount={totalCount}
-                totalPages={totalPages}
-                goToPage={goToPage}
-                setPageSize={setPageSize}
-            />
+            {hasFilters ? (
+                <ReportesTable
+                    seguimientos={seguimientos}
+                    isLoading={isLoading || isFetching}
+                    isError={isError}
+                    pageNumber={pageNumber}
+                    pageSize={pageSize}
+                    totalCount={totalCount}
+                    totalPages={totalPages}
+                    goToPage={goToPage}
+                    setPageSize={setPageSize}
+                />
+            ) : (
+                <Typography color="textSecondary" className="text-center py-10">
+                    Selecione os filtros e clique em Pesquisar para ver os relatórios.
+                </Typography>
+            )}
         </Box>
     );
 }
