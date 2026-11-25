@@ -1,6 +1,6 @@
 import { ISeguimientoItem } from '@/modules/bandeja/operaciones/interfaces';
 import { IDetalleSeguimiento } from '@/modules/bandeja/detalle-operaciones/interfaces';
-import { DATE_FORMAT, formatDate } from '@/lib/date';
+import { DATE_FORMAT, formatDate, parseDateFormat } from '@/lib/date';
 import { COD_ITEM } from '@/constants/codigo-items';
 import { getDescripcionOperacion } from '@/modules/flujos/reportes/utils/datos-operacion-item';
 
@@ -21,6 +21,7 @@ const ITEM_CODES_EXCLUIDOS: number[] = [
     COD_ITEM.DETALLE_GESTION,
     COD_ITEM.PLAZO_GESTION,
     COD_ITEM.IMPACTO_GESTION,
+    COD_ITEM.DEPARTAMENTO_ASIGNADO,
 ];
 
 function sanitizeSheetName(nombreProducto: string, nombreSubProducto: string): string {
@@ -71,7 +72,7 @@ function buildBaseRow(
         Descrição: descricao,
         Estado: seguimiento.estado,
         'Data de criação': formatDate(seguimiento.fechaInicio, DATE_FORMAT.DD_MM_YYYY),
-        Prazo: seguimiento.plazo ? formatDate(seguimiento.plazo, DATE_FORMAT.DD_MM
+        Prazo: seguimiento.plazo ? parseDateFormat(seguimiento.plazo, DATE_FORMAT.DD_MM
     };
 }
 
