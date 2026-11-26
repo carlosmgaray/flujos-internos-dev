@@ -54,14 +54,16 @@ export async function GET(request: NextRequest) {
                 ? await resolverCodigoDepartamentoReal(usuarioDominio, { skipCache: true })
                 : undefined;
 
-        /* NOTE: the advanced filter and the operation search must not send `domainUser`/`department`
-           to the backend: that adds the active-task `EXISTS` clause in `OracleTrackingRepository`
-           and would hide finished operations (see commit a4d61ad). Without them the backend returns
-           operations from every department, so results are scoped here, server-side, by matching
-           the user's real department code against every assigned department code (task 2 can
-           have several departments). If the department cannot be
+        /* NOTE: the advanced filter and the operation search must not send the logged-in user's own
+           `domainUser`/`department` (from the token) to the backend: that adds the active-task `EXISTS`
+           clause in `OracleTrackingRepository` and would hide finished operations (see commit a4d61ad).
+           Without them the backend returns operations from every department, so results are scoped here,
+           server-side, by matching the user's real department code against every assigned department code
+           (task 2 can have several departments). If the department cannot be
            resolved, nothing is returned (fail closed). On top of that, each flujo's
-           `viewAllDepartamentos` (flujos registry) see every operation of that flujo. */
+           `viewAllDepartamentos` (flujos registry) see every operation of that flujo.
+           Exception: filters explicitly chosen by the user (Reportes "Área responsável" /
+           "Responsável da área") are forwarded as-is in `apiParams`. */
         // NOTE: admins (see `lib/admin-role.ts`) skip the department scoping.
         const esAdmin = await isAdminUser(tokenUsername);
         const applyDepartmentScope = scopeByDepartment && !esAdmin;
@@ -110,8 +112,10 @@ export async function GET(request: NextRequest) {
             searchType: params.tipoBusqueda,
             operation: params.operacion || params.numeroOperacion,
             clientCode: params.codigoCliente,
-            domainUser: usuarioDominio,
-            department: departamento,
+            // NOTE: MI_BANDEJA always uses the token identity and ignores client params; other search types
+            // only forward filters explicitly chosen by the user (Reportes área/responsável).
+            domainUser: esMiBandeja ? usuarioDominio : params.usuarioDominio,
+            department: esMiBandeja ? departamento : params.departamento,
             productCodes: params.productos,
             subProductCodes: params.subProductos,
             branches: params.sucursales,
