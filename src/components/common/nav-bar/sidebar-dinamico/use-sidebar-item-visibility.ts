@@ -11,6 +11,7 @@ export const useSidebarItemVisibility = () => {
                   roles: [],
                   codigoDepartamento: usuarioActual?.codigoDepartamento ?? null,
                   creatableFlujoIds: usuarioActual?.creatableFlujoIds ?? [],
+                  esAdmin: usuarioActual?.esAdmin ?? false,
               })
             : true;
 

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Box, Typography } from '@mui/material';
 
 import { ReporteFiltrosForm } from '@/modules/flujos/reportes/components/reporte-filtros-form';
@@ -8,8 +9,17 @@ import { ReportesTable } from '@/modules/flujos/reportes/components/reportes-tab
 import { ReportesExportButton } from '@/modules/flujos/reportes/components/reportes-export-button';
 import { useReportes } from '@/modules/flujos/reportes/hooks/use-reportes';
 import { IReporteFiltros } from '@/modules/flujos/reportes/interfaces/reporte-filtros.interface';
+import { useNbcCurrentUser } from '@/modules/auth/ui/hooks/use-nbc-current-user';
+import { canAccessReportes } from '@/modules/flujos/reportes/utils/reportes-access';
+import { APP_ROUTES } from '@/constants/app-routes';
 
 export function ReportesPage() {
+    const router = useRouter();
+    const { usuarioActual, usuarioActualQuery } = useNbcCurrentUser();
+    const userLoaded = usuarioActualQuery.isSuccess || usuarioActualQuery.isError;
+    // A failed user query counts as no access (deny by default).
+    const hasAccess =usuarioActualQuery.isSuccess && canAccessReportes(usuarioActual);
+
     const [filtrosOpen, setFiltrosOpen] = useState(true);
     const [filtros, setFiltros] = useState<IReporteFiltros>({});
 
@@ -40,6 +50,14 @@ export function ReportesPage() {
         }
         resetPage();
     };
+
+    useEffect(() => {
+        if (userLoaded && !hasAccess) {
+            router.replace(APP_ROUTES.FORBIDDEN);
+        }
+    }, [userLoaded, hasAccess, router]);
+
+    if (!hasAccess) return null;
 
     return (
         <Box className="p-4">

@@ -2,6 +2,7 @@ import { SidebarItem, SidebarSection } from '@/interfaces/sidebar/sidebar.types'
 import { MdOutlineInbox, MdAdd, MdOutlineAssessment } from 'react-icons/md';
 import { APP_ROUTES } from '@/constants/app-routes';
 import { FLUJOS } from '@/modules/flujos/flujos.registry';
+import { canAccessReportes } from '@/modules/flujos/reportes/utils/reportes-access';
 
 /* NOTE: the quick filters and the creation actions come from the flujos registry, one of each per
    flujo. Nothing here names a specific flujo. */
@@ -22,6 +23,7 @@ export const sidebarSections: SidebarSection[] = [
                 text: 'Consultas e Informes',
                 icon: MdOutlineAssessment,
                 href: APP_ROUTES.REPORTES,
+                showItem: ({ creatableFlujoIds, esAdmin }) => canAccessReportes({ creatableFlujoIds, esAdmin }),
             },
         ],
     },

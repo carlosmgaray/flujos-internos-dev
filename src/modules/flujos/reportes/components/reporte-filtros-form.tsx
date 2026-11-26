@@ -17,6 +17,8 @@ import {
     ApontamentoCreationField,
 } from '@/products/auditoria/apontamentos/apontamentos-auditoria.config';
 import { useSetores } from '@/modules/usuarios/ui/hooks/use-setores';
+import { useNbcCurrentUser } from '@/modules/auth/ui/hooks/use-nbc-current-user';
+import { getReportesProductCodes } from '@/modules/flujos/reportes/utils/reportes-access';
 
 const TODOS = '1000';
 
@@ -87,10 +89,19 @@ export function ReporteFiltrosForm({ open, onToggle, onApply }: ReporteFiltrosFo
     const produtoSelecionado = useWatch({ control, name: 'produto' });
     const permiteResponsavel = !PRODUTOS_SEM_RESPONSAVEL.includes(produtoSelecionado);
 
-    const { productos, estados, subProductosOptions } = useAdvancedFilter({
+    const { productos: catalogoProductos, estados, subProductosOptions } = useAdvancedFilter({
         productosSeleccionados: produtoSelecionado ? [produtoSelecionado] : [],
         includeTodos: false,
     });
+
+    const { usuarioActual } = useNbcCurrentUser();
+    const allowedProductCodes = useMemo(() => getReportesProductCodes(usuarioActual), [usuarioActual]);
+
+    // Only the products of the flujos the user can see; `undefined` until the catalog loads.
+    const productos = useMemo(
+        () => catalogoProductos?.filter(p => allowedProductCodes.includes(p.code)),
+        [catalogoProductos, allowedProductCodes]
+    );
 
     const productosOptions = useMemo(
         () => (productos ?? []).map(p => ({ value: p.code.toString(), label: p.name.toUpperCase() })),

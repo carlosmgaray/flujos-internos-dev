@@ -8,6 +8,7 @@ export interface SidebarItemShowParams {
     roles: number[];
     codigoDepartamento: string | null;
     creatableFlujoIds: string[];
+    esAdmin: boolean;
 }
 
 export interface SidebarItem {
