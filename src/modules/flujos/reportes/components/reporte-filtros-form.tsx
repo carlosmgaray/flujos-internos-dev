@@ -5,6 +5,7 @@ import { Box, Button, Collapse, Paper, TextField } from '@mui/material';
 import { useForm, useWatch } from 'react-hook-form';
 import { DatePicker } from '@mui/x-date-pickers';
 import { MdFilterList } from 'react-icons/md';
+import { isValid, startOfDay } from 'date-fns';
 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Option, SelectAutocomplete } from '@/components/ui/select';
@@ -65,9 +66,21 @@ const isRequired = (field: ApontamentoCreationField): boolean => APONTAMENTO_CRE
 const getLabel = (field: ApontamentoCreationField, text: string): string =>
     isRequired(field) ? text : `${text} (opcional)`;
 
+const INVALID_DATE_MESSAGE = 'Data inválida';
+const DATE_RANGE_MESSAGE = 'A data final não pode ser anterior à data inicial';
+
+const isInvalidDate = (value: Date | null): boolean => value !== null && !isValid(value);
+
+const isDesdeAfterHasta = (desde: Date | null, hasta: Date | null): boolean =>
+    desde !== null &&
+    hasta !== null &&
+    isValid(desde) &&
+    isValid(hasta) &&
+    startOfDay(desde).getTime() > startOfDay(hasta).getTime();
+
 export function ReporteFiltrosForm({ open, onToggle, onApply }: ReporteFiltrosFormProps) {
     const form = useForm<ReporteFiltrosFormValues>({ defaultValues: EMPTY_VALUES });
-    const { control, handleSubmit, reset, setValue } = form;
+    const { control, handleSubmit, reset, setValue, trigger, getValues } = form;
     const { setores, setoresQuery } = useSetores();
 
     const departamentoOptions: Option[] = setores.map(setor => ({ value: setor.id, label: setor.name }));
@@ -88,6 +101,15 @@ export function ReporteFiltrosForm({ open, onToggle, onApply }: ReporteFiltrosFo
 
     const produtoSelecionado = useWatch({ control, name: 'produto' });
     const permiteResponsavel = !PRODUTOS_SEM_RESPONSAVEL.includes(produtoSelecionado);
+
+    const fechaDesde = useWatch({ control, name: 'fechaDesde' });
+    const fechaHasta = useWatch({ control, name: 'fechaHasta' });
+
+    const revalidateFechaHasta = () => {
+        if (getValues('fechaHasta') !== null) {
+            trigger('fechaHasta');
+        }
+    };
 
     const { productos: catalogoProductos, estados, subProductosOptions } = useAdvancedFilter({
         productosSeleccionados: produtoSelecionado ? [produtoSelecionado] : [],
@@ -348,19 +370,31 @@ export function ReporteFiltrosForm({ open, onToggle, onApply }: ReporteFiltrosFo
                             <FormField
                                 name="fechaDesde"
                                 control={control}
-                                render={({ field }) => (
+                                rules={{ validate: value => (isInvalidDate(value) ? INVALID_DATE_MESSAGE : true) }}
+                                render={({ field, fieldState }) => (
                                     <FormItem>
                                         <FormLabel>Criado a partir de</FormLabel>
                                         <FormControl>
                                             <DatePicker
                                                 slotProps={{
-                                                    textField: { size: 'small', fullWidth: true },
-                                                    field: { clearable: true, onClear: () => field.onChange(null) },
+                                                    textField: { size: 'small', fullWidth: true, error: !!fieldState.error },
+                                                    field: {
+                                                        clearable: true,
+                                                        onClear: () => {
+                                                            field.onChange(null);
+                                                            revalidateFechaHasta();
+                                                        },
+                                                    },
                                                 }}
                                                 value={field.value}
-                                                onChange={field.onChange}
+                                                onChange={value => {
+                                                    field.onChange(value);
+                                                    revalidateFechaHasta();
+                                                }}
+                                                maxDate={fechaHasta && isValid(fechaHasta) ? fechaHasta : undefined}
                                             />
                                         </FormControl>
+                                        <FormMessage />
                                     </FormItem>
                                 )}
                             />
@@ -368,19 +402,28 @@ export function ReporteFiltrosForm({ open, onToggle, onApply }: ReporteFiltrosFo
                             <FormField
                                 name="fechaHasta"
                                 control={control}
-                                render={({ field }) => (
+                                rules={{
+                                    validate: value => {
+                                        if (isInvalidDate(value)) return INVALID_DATE_MESSAGE;
+                                        if (isDesdeAfterHasta(getValues('fechaDesde'), value)) return DATE_RANGE_MESSAGE;
+                                        return true;
+                                    },
+                                }}
+                                render={({ field, fieldState }) => (
                                     <FormItem>
                                         <FormLabel>Criado até</FormLabel>
                                         <FormControl>
                                             <DatePicker
                                                 slotProps={{
-                                                    textField: { size: 'small', fullWidth: true },
+                                                    textField: { size: 'small', fullWidth: true, error: !!fieldState.error },
                                                     field: { clearable: true, onClear: () => field.onChange(null) },
                                                 }}
                                                 value={field.value}
                                                 onChange={field.onChange}
+                                                minDate={fechaDesde && isValid(fechaDesde) ? fechaDesde : undefined}
                                             />
                                         </FormControl>
+                                        <FormMessage />
                                     </FormItem>
                                 )}
                             />
